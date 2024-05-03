@@ -3,6 +3,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <vector>
+#include <semaphore>
 
 using namespace std;
 
@@ -20,6 +21,16 @@ using namespace std;
 #define priceTopp_3 0.7
 #define priceTopp_4 0.6
 #define priceTopp_5 0.9
+
+class solution {
+    public:
+    float mutex_time;
+    float semaphore_time;
+    float monitor_time;
+
+};
+
+solution sol;
 
 int ticket = 30, _flavors[NUM_FLAVORS] = {29, 34, 18, 25, 20}, _toppings[NUM_TOPPINGS] = {20, 34, 28, 22, 18};
 double revenue[NUM_COUNTERS] = {0.0};
@@ -85,7 +96,7 @@ int main() {
         customers[i].id = i+1;
     }
 
-   
+//solution using mutex
 
     for (int i = 0; i < NUM_COUNTERS; i++) {
         
@@ -95,6 +106,11 @@ int main() {
     for (int i = 0; i < NUM_COUNTERS; i++) {
         counterThread[i].join();
     }
+
+
+    //solution using semaphore
+
+
 
     return 0;
 }
@@ -174,11 +190,9 @@ void counter(int counterId) {
             }
         }
 
-
         revenue[counterId - 1] += bill;
     }
 
-    // cout << "\n\t\t\t\t\t\t\t\tCounter " << counterId << " closed. Total revenue: $" << revenue[counterId - 1] << "\n";
 }
 
 int selectFlavor(int customerId) {
