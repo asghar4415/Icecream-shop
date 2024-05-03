@@ -61,7 +61,7 @@ int main() {
 
 
 
-    cout << "\n\n\n\t\t\t\t\t\t\tEnter Number Of Customers [1-30]:  ";
+    cout << "\n\n\t\t\t\t\t\t\tEnter Number Of Customers [1-30]:  ";
     cin >> noC;
     cout << "\n";
 
@@ -164,24 +164,25 @@ void counter(int counterId) {
                 customers[j].topping = toppingChoice;
                 customers[j].bill = bill;
 
-                
-
-
+                cout<<"\n\n\t\t\t\t\t\t\t\tBILLING COUNTER "<<counterId<<"\n";
+                cout<<"\n\t\t\t\t\t\t\t\tCustomer Name: "<<customers[j].name<<"\n";
+                cout<<"\n\t\t\t\t\t\t\t\tIce Cream Number: "<<i+1<<"\n";
+                cout<<"\n\t\t\t\t\t\t\t\tCost: $"<<bill<<"\n\n";
+                cout<<"\n";
 
                 break;
             }
         }
 
-        // cout<<counterId<<endl;
-        // cout<<i<<endl;
-        
 
-        // Payment counter - ENTER
         revenue[counterId - 1] += bill;
     }
+
+    // cout << "\n\t\t\t\t\t\t\t\tCounter " << counterId << " closed. Total revenue: $" << revenue[counterId - 1] << "\n";
 }
 
 int selectFlavor(int customerId) {
+
     lock_guard<mutex> flavorLock(flavorMutex);
     int flavorChoice;
 
@@ -189,12 +190,12 @@ for(int i=0; i<noof_customers; i++)
 {
     if(customers[i].id == customerId)
     {
-        cout <<customers[i].name<<", Please select a flavor:\n";
-        cout <<"1.Vanilla\n";
-        cout <<"2.Chocolate\n";
-        cout <<"3.Strawberry\n";
-        cout <<"4.Mint\n";
-        cout <<"5.Coffee\n";
+        cout <<"\n\t\t\t\t\t\t\t"<<customers[i].name<<", Please select a flavor:\n";
+        cout <<"\n\t\t\t\t\t\t\t\t1.Vanilla\n";
+        cout <<"\t\t\t\t\t\t\t\t2.Chocolate\n";
+        cout <<"\t\t\t\t\t\t\t\t3.Strawberry\n";
+        cout <<"\t\t\t\t\t\t\t\t4.Mint\n";
+        cout <<"\t\t\t\t\t\t\t\t5.Coffee\n";
 
     cin >> flavorChoice;
     break;
@@ -229,12 +230,13 @@ int selectTopping(int customerId) {
     {
         if(customers[i].id == customerId)
         {
-            cout <<customers[i].name<<", Please select a topping:\n";
-            cout <<"1.Sprinkles\n";
-            cout <<"2.Chocolate chips\n";
-            cout <<"3.Whipped cream\n";
-            cout <<"4.Caramel sauce\n";
-            cout <<"5.Nuts\n";
+        cout <<"\n\t\t\t\t\t\t\t"<<customers[i].name<<", Please select a topping:\n";
+        cout <<"\n\t\t\t\t\t\t\t\t1.Sprinkles\n";
+        cout <<"\t\t\t\t\t\t\t\t2.Chocolate chips\n";
+        cout <<"\t\t\t\t\t\t\t\t3.Whipped cream\n";
+        cout <<"\t\t\t\t\t\t\t\t4.Caramel sauce\n";
+        cout <<"\t\t\t\t\t\t\t\t5.Nuts\n";
+
 
             cin >> toppingChoice;
             break;
