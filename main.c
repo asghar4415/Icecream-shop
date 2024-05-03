@@ -41,8 +41,6 @@ typedef struct
 
 solution sol;
 
-
-
 int ticket = 30;
 int _flavors[NUM_FLAVORS] = {29, 34, 18, 25, 20};
 int _toppings[NUM_TOPPINGS] = {20, 34, 28, 22, 18};
@@ -55,6 +53,8 @@ pthread_mutex_t ticketMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t flavorMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t toppingMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t paymentMutex[NUM_COUNTERS] = {PTHREAD_MUTEX_INITIALIZER};
+pthread_cond_t ticketCond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t paymentCond[NUM_COUNTERS] = {PTHREAD_COND_INITIALIZER};
 
 sem_t ticketSemaphore;
 sem_t paymentSemaphore[NUM_COUNTERS];
@@ -62,12 +62,8 @@ sem_t paymentSemaphore[NUM_COUNTERS];
 void *mutex_counter(void *arg);
 void *semaphore_counter(void *arg);
 void *monitor_counter(void *arg);
-int selectFlavor_1(int customerId);
-int selectTopping_1(int customerId);
-int selectFlavor_2(int customerId);
-int selectTopping_2(int customerId);
-int selectFlavor_3(int customerId);
-int selectTopping_3(int customerId);
+int selectFlavor(int customerId);
+int selectTopping(int customerId);
 
 int main()
 {
@@ -87,7 +83,7 @@ int main()
     printf("\t\t\t\t\t\t 2. Chocolate $%.2f\t\t\t 2. Chocolate chips $%.2f\n\n", priceFlav_2, priceTopp_2);
     printf("\t\t\t\t\t\t 3. Strawberry $%.2f\t\t\t 3. Whipped cream $%.2f\n\n", priceFlav_3, priceTopp_3);
     printf("\t\t\t\t\t\t 4. Mint $%.2f\t\t\t\t 4. Caramel sauce $%.2f\n\n", priceFlav_4, priceTopp_4);
-    printf("\t\t\t\t\t\t 5. Coffee $%.2f\t\t\t\t 5. Nuts $%.2f\n\n\n\n", priceFlav_5, priceTopp_5);
+    printf("\t\t\t\t\t\t 5. Coffee $%.2f\t\t\t 5. Nuts $%.2f\n\n\n\n", priceFlav_5, priceTopp_5);
 
     printf("\n\n\t\t\t\t\t\t\tEnter Number Of Customers [1-30]:  ");
     scanf("%d", &noC);
@@ -107,6 +103,9 @@ int main()
         scanf("%s", customers[i].name);
         printf("\n");
         customers[i].id = i + 1;
+        customers[i].flavor=selectFlavor(customers[i].id);
+        customers[i].topping=selectTopping(customers[i].id);
+
     }
 
     // solution using mutex
@@ -114,16 +113,14 @@ int main()
 
     for (int i = 0; i < NUM_COUNTERS; i++)
     {
-
         pthread_create(&counterThread[i], NULL, mutex_counter, (void *)(intptr_t)(i + 1));
-
-        // pthread_create(&counterThread[i], NULL, , (void*)(intptr_t)(i + 1));
     }
 
     for (int i = 0; i < NUM_COUNTERS; i++)
     {
         pthread_join(counterThread[i], NULL);
     }
+
     clock_gettime(CLOCK_MONOTONIC, &end);
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     sol.mutex_time = elapsed;
@@ -139,9 +136,7 @@ int main()
 
     for (int i = 0; i < NUM_COUNTERS; i++)
     {
-
         pthread_create(&counterThread[i], NULL, semaphore_counter, (void *)(intptr_t)(i + 1));
-        // pthread_create(&counterThread[i], NULL, counter, (void*)(intptr_t)(i + 1));
     }
 
     for (int i = 0; i < NUM_COUNTERS; i++)
@@ -154,10 +149,27 @@ int main()
     elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     sol.semaphore_time = elapsed;
 
+    // solution using monitor
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    for (int i = 0; i < NUM_COUNTERS; i++)
+    {
+        pthread_create(&counterThread[i], NULL, monitor_counter, (void *)(intptr_t)(i + 1));
+    }
+
+    for (int i = 0; i < NUM_COUNTERS; i++)
+    {
+        pthread_join(counterThread[i], NULL);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    sol.monitor_time = elapsed;
+
     printf("Time taken by mutex solution: %.5f seconds\n", sol.mutex_time);
     printf("Time taken by semaphore solution: %.5f seconds\n", sol.semaphore_time);
-
-    // solution using monitor
+    printf("Time taken by monitor solution: %.5f seconds\n", sol.monitor_time);
 
     return 0;
 }
@@ -175,7 +187,7 @@ void *mutex_counter(void *arg)
 
         ticket--;
 
-        flavorChoice = selectFlavor_1(i + 1);
+        flavorChoice = customers[i].flavor;
         if (flavorChoice == -1)
             continue;
 
@@ -198,7 +210,7 @@ void *mutex_counter(void *arg)
             break;
         }
 
-        toppingChoice = selectTopping_1(i + 1);
+        toppingChoice = customers[i].topping;
         if (toppingChoice == -1)
             continue;
 
@@ -221,7 +233,7 @@ void *mutex_counter(void *arg)
             break;
         }
 
-        for (int j = 0; j < noof_customers; j++)
+       for (int j = 0; j < noof_customers; j++)
         {
             if (customers[j].id == i + 1)
             {
@@ -232,6 +244,43 @@ void *mutex_counter(void *arg)
 
                 printf("\n\n\t\t\t\t\t\t\t\tBILLING COUNTER %d\n", counterId);
                 printf("\n\t\t\t\t\t\t\t\tCustomer Name: %s\n", customers[j].name);
+                switch(customers[i].flavor)
+                {
+                    case 1:
+                        printf("\n\t\t\t\t\t\t\t\tFlavor: Vanilla\n");
+                        break;
+                    case 2:
+                        printf("\n\t\t\t\t\t\t\t\tFlavor: Chocolate\n");
+                        break;
+                    case 3:
+                        printf("\n\t\t\t\t\t\t\t\tFlavor: Strawberry\n");
+                        break;
+                    case 4:
+                        printf("\n\t\t\t\t\t\t\t\tFlavor: Mint\n");
+                        break;
+                    case 5:
+                        printf("\n\t\t\t\t\t\t\t\tFlavor: Coffee\n");
+                        break;
+                }
+                switch(customers[i].topping)
+                {
+                    case 1:
+                        printf("\n\t\t\t\t\t\t\t\tTopping: Sprinkles\n");
+                        break;
+                    case 2:
+                        printf("\n\t\t\t\t\t\t\t\tTopping: Chocolate chips\n");
+                        break;
+                    case 3:
+                        printf("\n\t\t\t\t\t\t\t\tTopping: Whipped cream\n");
+                        break;
+                    case 4:
+                        printf("\n\t\t\t\t\t\t\t\tTopping: Caramel sauce\n");
+                        break;
+                    case 5:
+                        printf("\n\t\t\t\t\t\t\t\tTopping: Nuts\n");
+                        break;
+                }
+                
                 printf("\n\t\t\t\t\t\t\t\tIce Cream Number: %d\n", i + 1);
                 printf("\n\t\t\t\t\t\t\t\tCost: $%.2f\n\n", bill);
                 printf("\n");
@@ -258,12 +307,11 @@ void *semaphore_counter(void *arg)
         int flavorChoice, toppingChoice;
 
         sem_wait(&ticketSemaphore);
-
         sem_wait(&paymentSemaphore[counterId - 1]);
 
         ticket--;
 
-        flavorChoice = selectFlavor_2(i + 1);
+        flavorChoice = customers[i].flavor;
         if (flavorChoice == -1)
             continue;
 
@@ -286,7 +334,7 @@ void *semaphore_counter(void *arg)
             break;
         }
 
-        toppingChoice = selectTopping_2(i + 1);
+        toppingChoice = customers[i].topping;
         if (toppingChoice == -1)
             continue;
 
@@ -309,26 +357,10 @@ void *semaphore_counter(void *arg)
             break;
         }
 
-        for (int j = 0; j < noof_customers; j++)
-        {
-            if (customers[j].id == i + 1)
-            {
 
-                customers[j].flavor = flavorChoice;
-                customers[j].topping = toppingChoice;
-                customers[j].bill = bill;
+        
 
-                printf("\n\n\t\t\t\t\t\t\t\tBILLING COUNTER %d\n", counterId);
-                printf("\n\t\t\t\t\t\t\t\tCustomer Name: %s\n", customers[j].name);
-                printf("\n\t\t\t\t\t\t\t\tIce Cream Number: %d\n", i + 1);
-                printf("\n\t\t\t\t\t\t\t\tCost: $%.2f\n\n", bill);
-                printf("\n");
-
-                break;
-            }
-        }
-
-        revenue[counterId - 1] += bill;
+       
 
         sem_post(&paymentSemaphore[counterId - 1]);
         sem_post(&ticketSemaphore);
@@ -337,7 +369,80 @@ void *semaphore_counter(void *arg)
     return NULL;
 }
 
-int selectFlavor_1(int customerId)
+void *monitor_counter(void *arg)
+{
+    int counterId = (intptr_t)arg;
+
+    for (int i = counterId - 1; i < ticket && i % NUM_COUNTERS == counterId - 1 && i < noof_customers; i += NUM_COUNTERS)
+    {
+        double bill = 0.0;
+        int flavorChoice, toppingChoice;
+
+        pthread_mutex_lock(&ticketMutex);
+        while (ticket == 0)
+        {
+            pthread_cond_wait(&ticketCond, &ticketMutex);
+        }
+        ticket--;
+        pthread_mutex_unlock(&ticketMutex);
+
+        flavorChoice = customers[i].flavor;
+        if (flavorChoice == -1)
+            continue;
+
+        switch (flavorChoice)
+        {
+        case 1:
+            bill += priceFlav_1;
+            break;
+        case 2:
+            bill += priceFlav_2;
+            break;
+        case 3:
+            bill += priceFlav_3;
+            break;
+        case 4:
+            bill += priceFlav_4;
+            break;
+        case 5:
+            bill += priceFlav_5;
+            break;
+        }
+
+        toppingChoice = customers[i].topping;
+        if (toppingChoice == -1)
+            continue;
+
+        switch (toppingChoice)
+        {
+        case 1:
+            bill += priceTopp_1;
+            break;
+        case 2:
+            bill += priceTopp_2;
+            break;
+        case 3:
+            bill += priceTopp_3;
+            break;
+        case 4:
+            bill += priceTopp_4;
+            break;
+        case 5:
+            bill += priceTopp_5;
+            break;
+        }
+
+       
+
+        pthread_mutex_lock(&ticketMutex);
+        pthread_cond_signal(&ticketCond);
+        pthread_mutex_unlock(&ticketMutex);
+    }
+
+    return NULL;
+}
+
+int selectFlavor(int customerId)
 {
     pthread_mutex_lock(&flavorMutex);
     int flavorChoice;
@@ -364,7 +469,8 @@ int selectFlavor_1(int customerId)
         {
             if (customers[i].id == customerId)
             {
-                printf("%s, Invalid flavor choice. Exiting.\n", customers[i].name);
+                printf("\n\t\t\t\t\t\t%s, Invalid Flavor choice. Exiting.\n\n", customers[i].name);
+
                 break;
             }
         }
@@ -376,7 +482,7 @@ int selectFlavor_1(int customerId)
     return flavorChoice;
 }
 
-int selectTopping_1(int customerId)
+int selectTopping(int customerId)
 {
     pthread_mutex_lock(&toppingMutex);
     int toppingChoice;
@@ -404,7 +510,7 @@ int selectTopping_1(int customerId)
         {
             if (customers[i].id == customerId)
             {
-                printf("%s, Invalid topping choice. Exiting.\n", customers[i].name);
+                printf("\n\t\t\t\t\t\t%s, Invalid topping choice. Exiting.\n\n", customers[i].name);
                 break;
             }
         }
@@ -413,78 +519,5 @@ int selectTopping_1(int customerId)
     }
 
     pthread_mutex_unlock(&toppingMutex);
-    return toppingChoice;
-}
-
-int selectFlavor_2(int customerId)
-{
-    int flavorChoice;
-
-    for (int i = 0; i < noof_customers; i++)
-    {
-        if (customers[i].id == customerId)
-        {
-            printf("\n\t\t\t\t\t\t\t%s, Please select a flavor:\n", customers[i].name);
-            printf("\n\t\t\t\t\t\t\t\t1.Vanilla\n");
-            printf("\t\t\t\t\t\t\t\t2.Chocolate\n");
-            printf("\t\t\t\t\t\t\t\t3.Strawberry\n");
-            printf("\t\t\t\t\t\t\t\t4.Mint\n");
-            printf("\t\t\t\t\t\t\t\t5.Coffee\n");
-
-            scanf("%d", &flavorChoice);
-            break;
-        }
-    }
-
-    if (flavorChoice < 1 || flavorChoice > NUM_FLAVORS)
-    {
-        for (int i = 0; i < noof_customers; i++)
-        {
-            if (customers[i].id == customerId)
-            {
-                printf("%s, Invalid flavor choice. Exiting.\n", customers[i].name);
-                break;
-            }
-        }
-        return -1;
-    }
-
-    return flavorChoice;
-}
-
-int selectTopping_2(int customerId)
-{
-    int toppingChoice;
-
-    for (int i = 0; i < noof_customers; i++)
-    {
-        if (customers[i].id == customerId)
-        {
-            printf("\n\t\t\t\t\t\t\t%s, Please select a topping:\n", customers[i].name);
-            printf("\n\t\t\t\t\t\t\t\t1.Sprinkles\n");
-            printf("\t\t\t\t\t\t\t\t2.Chocolate chips\n");
-            printf("\t\t\t\t\t\t\t\t3.Whipped cream\n");
-            printf("\t\t\t\t\t\t\t\t4.Caramel sauce\n");
-            printf("\t\t\t\t\t\t\t\t5.Nuts\n");
-
-            scanf("%d", &toppingChoice);
-
-            break;
-        }
-    }
-
-    if (toppingChoice < 1 || toppingChoice > NUM_TOPPINGS)
-    {
-        for (int i = 0; i < noof_customers; i++)
-        {
-            if (customers[i].id == customerId)
-            {
-                printf("%s, Invalid topping choice. Exiting.\n", customers[i].name);
-                break;
-            }
-        }
-        return -1;
-    }
-
     return toppingChoice;
 }
