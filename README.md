@@ -1,6 +1,6 @@
-# Eldorado Ice Creams Billing System
+# Ice Creams Factory Problem
 
-Welcome to the Eldorado Ice Creams Billing System repository! This repository contains the source code for a simple billing system for an ice cream shop. Customers can select flavors and toppings for their ice creams, and the system calculates the bill for each customer.
+Welcome to the Eldorado Ice Creams! This repository contains the source code for a for an ice cream shop problem. Customers can select flavors and toppings for their ice creams, and the system calculates the bill for each customer. We have used multiple techniques(mutex, semaphore, monitor) to implement the concurrency in the system and compared their performance.
 
 ## Features
 
@@ -19,17 +19,17 @@ git clone https://github.com/asghar4415/Icecream-shop.git
 
 2. Navigate to the project directory:
 
-cd eldorado-ice-creams
+cd Icecream-shop
 
 
 3. Compile the source code:
 
-gcc -o icecream_billing icecream_billing.c -lpthread
+gcc main.c -o output
 
 
 4. Run the executable:
 
-./icecream_billing
+./output
 
 
 5. Follow the on-screen instructions to input the number of customers and their details.
@@ -44,10 +44,3 @@ gcc -o icecream_billing icecream_billing.c -lpthread
 
 The repository includes implementations of the billing system using different concurrency solutions. After running the program, the execution time of each solution is displayed, allowing you to compare their performance.
 
-## Contributing
-
-Contributions to this project are welcome! If you find any issues or have suggestions for improvements, please open an issue or create a pull request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
